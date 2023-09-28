@@ -50,11 +50,11 @@ var matrixStack = [];      // we use matrix stack for hierarchical modelling
 var eyePos = [0.0, 0.0, 2.0];
 var COI = [0.0, 0.0, 0.0];
 var viewUp = [0.0, 1.0, 0.0];
-var lightPosition = [10.0,4,4.0];
+var lightPosition = [10.0,4.0,4.0];
 
-var specColor = [1.0, 1.0, 1.0, 1.0];
-var ambColor = [0.2, 0.2, 0.2, 1.0];	
-var uDiffuseColor = [1.0, 1.0, 1.0, 1.0];
+var specColor = [1.0, 1.0, 1.0];
+var ambColor = [0.2, 0.2, 0.2];	
+var uDiffuseColor = [1.0, 1.0, 1.0];
 
 // Vertex shader code for per face lighting
 var vertexShaderCodePerFace = `#version 300 es
@@ -64,7 +64,6 @@ out vec3 posInEyeSpace;
 uniform mat4 uMMatrix;
 uniform mat4 uPMatrix;
 uniform mat4 uVMatrix;
-
 
 void main() {
   mat4 projectionModelView;
@@ -79,10 +78,10 @@ var fragmentShaderCodePerFace = `#version 300 es
   precision mediump float;
   out vec4 fragColor;
   in vec3 posInEyeSpace;
-  uniform vec4 uDiffuseColor;
+  uniform vec3 uDiffuseColor;
   uniform vec3 uLightPosition;
-  uniform vec4 ambColor;	
-  uniform vec4 specColor;	
+  uniform vec3 ambColor;	
+  uniform vec3 specColor;	
   
   void main() {
     vec3 normal = normalize(cross(dFdx(posInEyeSpace), dFdy(posInEyeSpace)));
@@ -92,7 +91,7 @@ var fragmentShaderCodePerFace = `#version 300 es
     vec3 viewVector = normalize(-posInEyeSpace);
     float costheta = max(dot(lightVector, normal), 0.0);
     float cosalpha = max(dot(reflectVector, viewVector), 0.0);
-    fragColor = uDiffuseColor * costheta + specColor*pow(cosalpha, 32.0) + ambColor;	
+    fragColor = vec4(uDiffuseColor * costheta + specColor*pow(cosalpha, 32.0) + ambColor, 1.0);	
   }`;
 
 
@@ -102,15 +101,15 @@ var vertexShaderCodePerVertex = `#version 300 es
   in vec3 aPosition;
   in vec3 aNormal;
 
-  uniform vec4 uDiffuseColor;
+  uniform vec3 uDiffuseColor;
   uniform vec3 uLightPosition;
   uniform mat4 uMMatrix;
   uniform mat4 uPMatrix;
   uniform mat4 uVMatrix;
-  uniform vec4 ambColor;	
-  uniform vec4 specColor;	
+  uniform vec3 ambColor;	
+  uniform vec3 specColor;	
 
-  out vec4 vertexColor;
+  out vec3 vertexColor;
 
   void main() {
     mat4 projectionModelView = uPMatrix*uVMatrix*uMMatrix;
@@ -132,11 +131,11 @@ var vertexShaderCodePerVertex = `#version 300 es
 // Fragment shader code for per vertex lighting
 var fragShaderCodePerVertex = `#version 300 es
 precision highp float;
-in vec4 vertexColor;
+in vec3 vertexColor;
 out vec4 fragColor;
 
 void main() {
-  fragColor = vertexColor;
+  fragColor = vec4(vertexColor,1.0);
 }`;
 
 // Vertex shader code
@@ -173,15 +172,15 @@ in vec3 lightVector;
 
 out vec4 fragColor;
 
-uniform vec4 uDiffuseColor;
-uniform vec4 ambColor;	
-uniform vec4 specColor;	
+uniform vec3 uDiffuseColor;
+uniform vec3 ambColor;	
+uniform vec3 specColor;	
 
 void main() {
   vec3 reflectVector = normalize(-reflect(lightVector, normalVector));
   float costheta = max(dot(lightVector, normalVector), 0.0);
   float cosalpha = pow(max(dot(reflectVector, viewDirection), 0.0), 32.0);
-  fragColor = uDiffuseColor * costheta + specColor*cosalpha + ambColor;
+  fragColor = vec4(  ambColor + specColor*cosalpha + uDiffuseColor*costheta, 1.0);
 }`;
 
 function vertexShaderSetup(vertexShaderCode) {
@@ -257,6 +256,7 @@ function setAttributes(){
   uLightPosition    = gl.getUniformLocation(shaderProgram, "uLightPosition");
   uAmbientColorLocation = gl.getUniformLocation(shaderProgram, 'ambColor');
   uSpecularColorLocation = gl.getUniformLocation(shaderProgram, 'specColor');
+
   //enable the attribute arrays
   gl.enableVertexAttribArray(aPositionLocation);
   gl.enableVertexAttribArray(uNormalLocation);
@@ -490,17 +490,15 @@ function drawCube(color) {
   // draw elementary arrays - triangle indices
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
 
-  gl.uniform4fv(uColorLocation, color);
+  gl.uniform3fv(uColorLocation, [color[0], color[1], color[2]]);
   gl.uniformMatrix4fv(uMMatrixLocation, false, mMatrix);
   gl.uniformMatrix4fv(uVMatrixLocation, false, vMatrix);
   gl.uniformMatrix4fv(uPMatrixLocation, false, pMatrix);
   gl.uniform3fv(uLightPosition, lightPosition);
-  gl.uniform4fv(uAmbientColorLocation, ambColor);	
-  gl.uniform4fv(uSpecularColorLocation, specColor);
+  gl.uniform3fv(uAmbientColorLocation, ambColor);	
+  gl.uniform3fv(uSpecularColorLocation, specColor);
 
   gl.drawElements(gl.TRIANGLES, indexBuf.numItems, gl.UNSIGNED_SHORT, 0);
-  // gl.drawArrays(gl.LINE_STRIP, 0, buf.numItems); // show lines
-  // gl.drawArrays(gl.POINTS, 0, buf.numItems);  // show points
 }
 
 function drawSphere(color) {
@@ -528,13 +526,13 @@ function drawSphere(color) {
   // draw elementary arrays - triangle indices
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, spIndexBuf);
 
-  gl.uniform4fv(uColorLocation, color);
+  gl.uniform3fv(uColorLocation, [color[0], color[1], color[2]]);
   gl.uniformMatrix4fv(uMMatrixLocation, false, mMatrix);
   gl.uniformMatrix4fv(uVMatrixLocation, false, vMatrix);
   gl.uniformMatrix4fv(uPMatrixLocation, false, pMatrix);
   gl.uniform3fv(uLightPosition, lightPosition);
-  gl.uniform4fv(uAmbientColorLocation, ambColor);	
-  gl.uniform4fv(uSpecularColorLocation, specColor);	
+  gl.uniform3fv(uAmbientColorLocation, ambColor);	
+  gl.uniform3fv(uSpecularColorLocation, specColor);	
 
   gl.drawElements(gl.TRIANGLES, spIndexBuf.numItems, gl.UNSIGNED_INT, 0);
   // gl.drawArrays(gl.LINE_STRIP, 0, spBuf.numItems); // show lines
