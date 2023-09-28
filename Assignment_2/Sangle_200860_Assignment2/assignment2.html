@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Assignment 2: CS360A</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" />
+    <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
+    <script type="text/javascript" src="assignment2.js"></script>
+    <style>
+      .heading{
+        font-size: 20px;
+        font-weight: bold;
+        margin: 5px;
+        text-align: center;
+      }
+    </style>
+  </head>
+
+  <body onload="webGLStart();">
+    <h1 class="heading" style="font-size: 3rem;">
+      CS360A: Assignment 2
+    </h1>
+    <h2 class="heading">
+      Deepak Sangle
+    </h2>
+    <canvas
+      id="assignment2"
+      style="border: 1px solid black"
+      width="1500"
+      height="500"
+    ></canvas>
+    <div style="display: flex; flex-flow: row wrap; justify-content: space-evenly; width: 1500;">
+        <div class="heading">Per-Face Shading</div>
+        <div class="heading">Gouraud Shading (Per-Vertex)</div>
+        <div class="heading">Phong-Shading (Per-Fragment)</div>
+    </div>
+    <div>
+      <div style="display: flex;">
+        <span style="font-weight: bold;">
+          Control Light Position: 
+        </span>
+        <input type="range" min="-10" max="10" value="5" onmousemove="changeLightPosition(value)" class="slider" id="myRange">
+      </div>
+      <br>
+      <div style="display: flex;">
+        <span style="font-weight: bold;">
+          Control Camera Zoom: 
+        </span>
+        <input type="range" min="-10" max="100" value="0" onmousemove="changeCameraPosition(value)" class="slider" id="myRange">
+      </div>
+
+    </div>
+  </body>
+</html>
