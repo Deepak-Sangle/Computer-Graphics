@@ -6,18 +6,37 @@
     <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" />
     <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
     <script type="text/javascript" src="assignment3.js"></script>
-
+    <link rel="stylesheet" href="assignment3.css">
   </head>
 
   <body onload="webGLStart();">
-    <div style="display: flex; justify-content: center;">
-
+    
+    <div id="main-box">
+      <div id="left-box">
+        <div>
+          Assignment 3
+        </div>
+        <div style="font-size: 2rem; color: blue;">
+          Deepak Sangle
+        </div>
+        <div style="font-size: 1.5rem; color:black;">
+          200860
+        </div>
+      </div>
+      
       <canvas
       id="canvas"
       style="border: 2px solid black;"
       width="700"
       height="700"
       ></canvas>
+
+      <div id="right-box">
+        <button class="btn" id="button" onclick="PlayAnimation()">Play Animation</button>
+        <label for="slider">Speed</label>
+        <input id="slider" type="range" min="1" max="50" value="10" onmousemove="ChangeSpeed(value)">  
+      </div> 
     </div>
+
   </body>
 </html>
