@@ -4,8 +4,11 @@
 
 var gl;
 var canvas;
-var button;
 var matrixStack = [];
+
+var button;
+var button_state = false;
+var onClick = false;
 
 var aPositionLocation;
 var aNormalLocation;
@@ -23,6 +26,9 @@ var uEyePositionLocation;
 var buf;
 var cubeNormalBuf;
 var indexBuf;
+
+var zAngle = 0;
+var yAngle = 0;
 
 var spBuf;
 var spIndexBuf;
@@ -54,6 +60,8 @@ var color = [1.0,1.0,1.0];                          // not used but passed for c
 var eyePos = [0.0, 1.5, 4.0];
 var initialEyePos = eyePos.copyWithin(eyePos);
 var reflection = 0.6;
+
+var degree = 0;
 
 // Inpur JSON model file to load
 var teapot_JSON = "public/teapot.json";
@@ -127,7 +135,7 @@ void main() {
   if(uShaderType == 4) textureColor = texture(cubeMap2D, t);
 
   // phong shading model computations
-  vec3 lightPos = vec3(0.0, 0.0, 0.0);
+  vec3 lightPos = vec3(10.0, 10.0, 10.0);
   vec3 lightDir = normalize(lightPos - v);
   vec3 eyeDir = normalize(uEyePos - v);
   float costheta = max(dot(lightDir, worldNormal), 0.0);
@@ -139,7 +147,7 @@ void main() {
   vec3 phongColor = (Ispecular + Idiffuse + Iambient)*0.5;
   
   if(uShaderType == 1 || uShaderType == 2 || uShaderType == 3) fragColor = cubeMapReflectCol;
-  else if(uShaderType == 4) fragColor = textureColor*cubeMapReflectCol*0.85;
+  else if(uShaderType == 4) fragColor = (textureColor*0.5 + cubeMapReflectCol*0.5);
   else fragColor = cubeMapReflectCol*0.4 + vec4(phongColor, 1.0)*1.5;
 }`;
 
@@ -564,7 +572,6 @@ function processObject(objData) {
   objVertexTextureBuffer.itemSize = 2;
   objVertexTextureBuffer.numItems = objData.vertexTextureCoords.length/2;
 
-  drawScene();
 }
 
 function drawObject() {
@@ -601,11 +608,12 @@ function drawObject() {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, objVertexIndexBuffer);
 
   gl.uniform3fv(uEyePositionLocation, eyePos);
+  gl.uniform3fv(uColorLocation, color);
   gl.uniformMatrix4fv(uMMatrixLocation, false, mMatrix);
   gl.uniformMatrix4fv(uVMatrixLocation, false, vMatrix);
   gl.uniformMatrix4fv(uPMatrixLocation, false, pMatrix);
-  gl.uniform1i(uShaderTypeLocation, 1);
   gl.uniformMatrix4fv(uWNMatrixLocation, false, mat4.inverse(mat4.transpose(mMatrix)));
+  gl.uniform1i(u2DTextureLocation, 1);
 
   gl.drawElements(
     gl.TRIANGLES,
@@ -617,20 +625,22 @@ function drawObject() {
 
 function drawTeapot(){
   pushMatrix(mMatrix);
-  mMatrix = mat4.translate(mMatrix, [0.0, 0.8, 0.0]);
-  mMatrix = mat4.scale(mMatrix, [0.072, 0.072, 0.072]);
-  
+  mMatrix = mat4.translate(mMatrix, [0.2, 0.78, 0.0]);
+  mMatrix = mat4.scale(mMatrix, [0.085, 0.085, 0.085]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(-5), [1,0,0]);
   // for texture binding
   gl.activeTexture(gl.TEXTURE0);                // set texture unit 0 to use
   gl.bindTexture(gl.TEXTURE_CUBE_MAP, cubeMapTexture); // bind the texture object to the texture unit
   gl.uniform1i(uTextureLocation, 0);            // pass the texture unit to the shader
+  // tell the shader to treat it as a reflecting surface
+  gl.uniform1i(uShaderTypeLocation, 1);
 
   drawObject();
   mMatrix = popMatrix();
 }
 
 // function to draw each side of the skybox
-function drawCubeFace(texture, textureEnum, textureNumber, location){
+function drawCubeFace(texture, textureEnum, textureNumber, location, rotation1, axis1, rotation2, axis2){
   
   pushMatrix(mMatrix);
   
@@ -638,11 +648,15 @@ function drawCubeFace(texture, textureEnum, textureNumber, location){
   gl.activeTexture(textureEnum); // set texture unit 1 to use
   gl.bindTexture(gl.TEXTURE_2D, texture); // bind the texture object 
   gl.uniform1i(u2DTextureLocation, textureNumber); // pass the texture unit
+
   // telling shader to treat it as textured surface
+  gl.uniform1i(uShaderTypeLocation, 3);
 
   // transformations
   mMatrix = mat4.translate(mMatrix, location);
   mMatrix = mat4.rotate(mMatrix, degToRad(180), [0, 0, 1]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(rotation1), axis1);
+  if(rotation2) mMatrix = mat4.rotate(mMatrix, degToRad(rotation2), axis2);
   mMatrix = mat4.scale(mMatrix, [200, 200, 200]);
 
   drawCube(color);
@@ -652,22 +666,22 @@ function drawCubeFace(texture, textureEnum, textureNumber, location){
 function drawSkyBox(){
 
   // Back side of the cube
-  drawCubeFace(negz, gl.TEXTURE1, 1, [0, 0, -195]);
+  drawCubeFace(negz, gl.TEXTURE1, 1, [0, 0, -199], 0, [0,0,1]);
   
   // Front side of the cube
-  drawCubeFace(posz, gl.TEXTURE2, 2, [0, 0, 195]);
+  drawCubeFace(posz, gl.TEXTURE2, 2, [0, 0, 199], 180, [0,1,1]);
 
   // Left side of the cube
-  drawCubeFace(negx, gl.TEXTURE3, 3, [-195, 0, 0]);
+  drawCubeFace(negx, gl.TEXTURE3, 3, [-199, 0, 0], 90, [1,0,0], 180, [0,1,0]);
   
   // Right side of the cube
-  drawCubeFace(posx, gl.TEXTURE4, 4, [195, 0, 0]);
+  drawCubeFace(posx, gl.TEXTURE4, 4, [199, 0, 0], -90, [1,0,0]);
   
   // Top side of the cube
-  drawCubeFace(posy, gl.TEXTURE5, 5, [0, 195, 0]);
+  drawCubeFace(posy, gl.TEXTURE5, 5, [0, 199, 0], 180, [0,1,0], 180, [1,0,0]);
   
   // Bottom side of the cube
-  drawCubeFace(negy, gl.TEXTURE6, 6, [0, -195, 0]);
+  drawCubeFace(negy, gl.TEXTURE6, 6, [0, -199, 0], 180, [0,1,0]);
 
 }
 
@@ -676,16 +690,16 @@ function drawSpheres(){
 
   pushMatrix(mMatrix);
   var color = [70/255, 91/255, 41/255];
-  mMatrix = mat4.rotate(mMatrix, degToRad(-10), [0,1,0]);
-  mMatrix = mat4.translate(mMatrix, [0.0, 0.385, 1.8]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(5), [0,1,0]);
+  mMatrix = mat4.translate(mMatrix, [0.0, 0.55, 1.8]);
   mMatrix = mat4.scale(mMatrix, [0.4, 0.4, 0.4]);
   drawSphere(color);
   mMatrix = popMatrix();
 
   pushMatrix(mMatrix);
   var color = [52/255, 39/255, 72/255];
-  mMatrix = mat4.rotate(mMatrix, degToRad(45), [0,1,0]);
-  mMatrix = mat4.translate(mMatrix, [0.0, 0.38, 1.2]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(50), [0,1,0]);
+  mMatrix = mat4.translate(mMatrix, [0.0, 0.40, 1.4]);
   mMatrix = mat4.scale(mMatrix, [0.3, 0.3, 0.3]);
   drawSphere(color);
   mMatrix = popMatrix();
@@ -694,10 +708,10 @@ function drawSpheres(){
 function drawRefractingCube(){
   pushMatrix(mMatrix);
   mMatrix = mat4.rotate(mMatrix, degToRad(-40), [0,1,0]);
-  mMatrix = mat4.translate(mMatrix, [0.0, 0.55, 1.8]);
-  mMatrix = mat4.scale(mMatrix, [0.4, 0.8, 0.4]);
+  mMatrix = mat4.translate(mMatrix, [0.0, 0.63, 1.65]);
+  mMatrix = mat4.scale(mMatrix, [0.5, 0.8, 0.4]);
   mMatrix = mat4.rotate(mMatrix, degToRad(-25), [0,1,0]);
-  mMatrix = mat4.rotate(mMatrix, degToRad(-10), [0,1,0]);
+  mMatrix = mat4.scale(mMatrix, [1, 1, 1.15]);
 
   // telling shader to treat it as refracting surface
   gl.uniform1i(uShaderTypeLocation, 2);
@@ -709,9 +723,11 @@ function drawRefractingCube(){
 function drawRubixCube(){
   pushMatrix(mMatrix);
   mMatrix = mat4.rotate(mMatrix, degToRad(15), [0,1,0]);
-  mMatrix = mat4.translate(mMatrix, [0.0, 0.32, 1.8]);
-  mMatrix = mat4.scale(mMatrix, [0.4, 0.4, 0.4]);
-  mMatrix = mat4.rotate(mMatrix, degToRad(-50), [0,1,0]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(-2), [1,0,0]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(-4), [0,0,1]);
+  mMatrix = mat4.translate(mMatrix, [0.4, 0.38, 1.8]);
+  mMatrix = mat4.scale(mMatrix, [0.35, 0.35, 0.35]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(-25), [0,1,0]);
 
   gl.activeTexture(gl.TEXTURE7);            // set texture unit 0 to use
   gl.bindTexture(gl.TEXTURE_2D, rubixCube); // bind the texture object to the texture unit
@@ -727,8 +743,9 @@ function drawTable(){
   pushMatrix(mMatrix);
 
   // need to do this in order to remove seam from the scene 
-  mMatrix = mat4.translate(mMatrix, [0.6, -0.12, 0.0]);
-  mMatrix = mat4.scale(mMatrix, [7, 0.15, 1.0]);
+  mMatrix = mat4.rotate(mMatrix, degToRad(-8), [1,0,0]);
+  mMatrix = mat4.translate(mMatrix, [0.8, -0.22, 0.0]);
+  mMatrix = mat4.scale(mMatrix, [8, 0.15, 1]);
   mMatrix = mat4.rotate(mMatrix, degToRad(-90), [0,0,1]);
 
   mMatrix = mat4.translate(mMatrix, [0.0, -0.12, 0.0]);
@@ -743,8 +760,8 @@ function drawTable(){
 
   mMatrix = popMatrix();
   pushMatrix(mMatrix);
-  mMatrix = mat4.translate(mMatrix, [0.0, -1.5, 0.0]);
-  mMatrix = mat4.scale(mMatrix, [0.2, 2.0, 0.2]);
+  mMatrix = mat4.translate(mMatrix, [0.0, -1.7, 0.0]);
+  mMatrix = mat4.scale(mMatrix, [0.2, 3.0, 0.2]);
   
   pushMatrix(mMatrix);
   mMatrix = mat4.translate(mMatrix, [8.0, 0.0, 4.0]);
@@ -773,9 +790,6 @@ function drawAllScene(){
   // draw teapot
   drawTeapot();
 
-  // draw skybox
-  drawSkyBox();
-
   // draw Spheres
   drawSpheres();
 
@@ -792,36 +806,41 @@ function drawAllScene(){
 //The main drawing routine
 function drawScene() {
 
-  var degree = 0;
-
   animate = function () {
     gl.viewport(0, 0, gl.viewportWidth, gl.viewportHeight);
     gl.clearColor(0.9, 0.9, 0.9, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    const cosTheta = Math.cos(degToRad(degree));
-    const sinTheta = Math.sin(degToRad(degree));
-
-    eyeMatrix = [
-      [cosTheta, 0, -sinTheta],
-      [0, 1, 0],
-      [sinTheta, 0, cosTheta]
-    ];
-    
-    eyePos = myMatMul(initialEyePos, eyeMatrix);
-    degree += speed;
-
+    if(onClick === false){
+      const cosTheta = Math.cos(degToRad(degree));
+      const sinTheta = Math.sin(degToRad(degree));
+      
+      eyeMatrix = [
+        [cosTheta, 0, -sinTheta],
+        [0, 1, 0],
+        [sinTheta, 0, cosTheta]
+      ];
+      
+      eyePos = myMatMul(initialEyePos, eyeMatrix);
+      degree += speed;
+    }
     //set up the model matrix
     mat4.identity(mMatrix);
 
     // set up the view matrix, multiply into the modelview matrix
     mat4.identity(vMatrix);
     vMatrix = mat4.lookAt(eyePos, [0, 0, 0], [0, 1, 0], vMatrix);
-
+    
     //set up projection matrix
     mat4.identity(pMatrix);
     mat4.perspective(60, 1.0, 0.01, 1000, pMatrix);
+    
+    // draw skybox
+    drawSkyBox();
 
+    // global rotation, controlled by mouse
+    mMatrix = mat4.rotate(mMatrix, degToRad(zAngle-13), [0, 1, 0]);
+    mMatrix = mat4.rotate(mMatrix, degToRad(yAngle+5.6), [1, 0, 0]);
+    
     drawAllScene();
 
     if(isAnimation) window.requestAnimationFrame(animate);
@@ -831,6 +850,7 @@ function drawScene() {
 
 function PlayAnimation(){
   isAnimation = !isAnimation;
+  button_state = isAnimation;
   if(isAnimation) {
     button.style.backgroundColor = "#82d585";
     button.style.transform = "scale(1.1)";
@@ -917,7 +937,6 @@ function initCubeMap(){
         image
       );
       gl.generateMipmap(gl.TEXTURE_CUBE_MAP);
-      drawScene();
     });
   });
 
@@ -948,10 +967,52 @@ function initFiles(){
   wood = initTextures(wood_file);
 }
 
+function onMouseDown(event) {
+  onClick = true;
+  isAnimation = false;
+  canvas.addEventListener("mousemove", onMouseMove, false);
+  canvas.addEventListener("mouseup", onMouseUp, false);
+  canvas.addEventListener("mouseout", onMouseOut, false);
+  
+  prevMouseX = event.clientX;
+  prevMouseY = canvas.height - event.clientY;
+}
+
+function onMouseMove(event) {
+  onClick = true;
+  isAnimation = false;
+
+  var mouseX = event.clientX;
+  var diffX = mouseX - prevMouseX;
+  zAngle = zAngle + diffX / 5;
+  prevMouseX = mouseX;
+
+  var mouseY = canvas.height - event.clientY;
+  var diffY = mouseY - prevMouseY;
+  yAngle = yAngle - diffY / 5;
+  prevMouseY = mouseY;
+    
+  animate();
+}
+
+function onMouseUp(event) {
+  isAnimation = button_state;
+  animate();
+  onClick = false;
+  canvas.removeEventListener("mousemove", onMouseMove, false);
+  canvas.removeEventListener("mouseup", onMouseUp, false);
+  canvas.removeEventListener("mouseout", onMouseOut, false);
+}
+
+function onMouseOut(event) {
+  onMouseUp(event);
+}
+
 // This is the entry point from the html
 function webGLStart() {
   canvas = document.getElementById("canvas");
   button = document.getElementById("button");
+  canvas.addEventListener("mousedown", onMouseDown, false);
 
   initGL(canvas);
   shaderProgram = initShaders(vertexShaderReflection, fragShaderEnvironment);
