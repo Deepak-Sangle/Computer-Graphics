@@ -83,7 +83,7 @@
         <div class="btn">  
           <div>Contrast</div>
           <div class="slidecontainer">
-            <input type="range" min="-80" max="100" value="0" class="slider" id="myRange" onmousemove="changeContrast(value)">
+            <input type="range" min="-80" max="100" value="0" class="slider" id="contrast-slider" onmousemove="changeContrast(value)">
           </div>
           
         </div>
@@ -91,7 +91,7 @@
         <div class="btn">  
           <div>Brightness</div>
           <div class="slidecontainer">
-            <input type="range" min="-35" max="45" value="0" class="slider" id="myRange" onmousemove="changeBrightness(value)">
+            <input type="range" min="-35" max="45" value="0" class="slider" id="brightness-slider" onmousemove="changeBrightness(value)">
           </div>
           
         </div>
@@ -109,11 +109,11 @@
         
         <div class="row-flex">
 
-          <div class="btn toggles">  
+          <div onclick="ResetScreen()" class="btn toggles">  
             <div>Reset Screen</div>
           </div>
 
-          <div class="btn toggles">  
+          <div onclick="saveScreenshot()" class="btn toggles">  
             <div>Save Screenshot</div>
           </div>
         </div>

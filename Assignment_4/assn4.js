@@ -22,11 +22,9 @@ var cubeTextureBuf;
 
 var mMatrix = mat4.create(); // model matrix
 
-var color = [1.0,1.0,1.0];
-var textureType = 0;
+var textureType = -1;
 
-var sepia;
-var grayscale;
+var sepia, grayscale, brightness, contrast;
 
 var background_file, background_texture;
 var foreground_file, foreground_texture;
@@ -70,28 +68,29 @@ vec3 to_contrast = vec3(0.5, 0.5, 0.5);
 
 vec4 kernel[9];
 
-void make_kernel(){
-  ivec2 texel_size = textureSize(texture1, 0);
-  float w = 6.0 / float(texel_size.x);
-  float h = 6.0 / float(texel_size.y);
-  kernel[0] = texture(texture1, t + vec2(-w, -h));
-	kernel[1] = texture(texture1, t + vec2(0.0, -h));
-	kernel[2] = texture(texture1, t + vec2(w, -h));
-	kernel[3] = texture(texture1, t + vec2(-w, 0.0));
-	kernel[4] = texture(texture1, t);
-	kernel[5] = texture(texture1, t + vec2(w, 0.0));
-	kernel[6] = texture(texture1, t + vec2(-w, h));
-	kernel[7] = texture(texture1, t + vec2(0.0, h));
-	kernel[8] = texture(texture1, t + vec2(w, h));
+void make_kernel(sampler2D tex){
+  ivec2 texel_size = textureSize(tex, 0);
+  float w = 3.0 / float(texel_size.x);
+  float h = 3.0 / float(texel_size.y);
+  kernel[0] += texture(tex, t + vec2(-w, -h));
+	kernel[1] += texture(tex, t + vec2(0.0, -h));
+	kernel[2] += texture(tex, t + vec2(w, -h));
+	kernel[3] += texture(tex, t + vec2(-w, 0.0));
+	kernel[4] += texture(tex, t);
+	kernel[5] += texture(tex, t + vec2(w, 0.0));
+	kernel[6] += texture(tex, t + vec2(-w, h));
+	kernel[7] += texture(tex, t + vec2(0.0, h));
+	kernel[8] += texture(tex, t + vec2(w, h));
 }
 
 void main() {
-  make_kernel();
-
+  make_kernel(texture1);
+  
   vec4 textureColor = texture(texture1, t); 
   vec4 foregroundTextureColor = texture(texture2, t);
-
+  
   if(uIsAlphaBlended == 1){
+    make_kernel(texture2);
     foregroundTextureColor /= foregroundTextureColor.a;
     float closer = sqrt(pow((foregroundTextureColor.r), 2.0) + pow((foregroundTextureColor.g), 2.0) + pow((foregroundTextureColor.b), 2.0));
     if(closer > 0.1){
@@ -200,9 +199,9 @@ function initShaders(vertexShaderCode, fragmentShaderCode) {
 
 function initGL(canvas) {
   try {
-    gl = canvas.getContext("webgl2"); // the graphics webgl2 context
-    gl.viewportWidth = canvas.width; // the width of the canvas
-    gl.viewportHeight = canvas.height; // the height
+    gl = canvas.getContext("webgl2", { preserveDrawingBuffer: true });
+    gl.viewportWidth = canvas.width;
+    gl.viewportHeight = canvas.height;
   } catch (e) {}
   if (!gl) {
     alert("WebGL initialization failed");
@@ -293,7 +292,7 @@ function initCubeBuffer() {
   indexBuf.numItems = indices.length;
 }
 
-function drawCube(color) {
+function drawCube() {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.vertexAttribPointer(
     aPositionLocation,
@@ -323,7 +322,7 @@ function drawCube(color) {
 
 function setupTexture(){
   gl.uniform1i(uTextureTypeLocation, textureType);
-  drawScene(color);
+  drawScene();
 }
 
 function setAttributes(){
@@ -355,7 +354,7 @@ function drawScene() {
   mat4.identity(mMatrix);
 
   mMatrix = mat4.scale(mMatrix, [2.0,2.0,2.0]);
-  drawCube(color);
+  drawCube();
 
 }
 
@@ -371,11 +370,11 @@ function handleTextureLoaded(texture) {
   );
 
   gl.generateMipmap(gl.TEXTURE_2D);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_BORDER);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_BORDER);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
 
+  drawScene();
+  
 }
 
 function initTextures(file_path){
@@ -410,8 +409,10 @@ function webGLStart() {
   initCubeBuffer();
 
   //some other references
-  sepia = document.getElementById('sepia-checkbox');
-  grayscale = document.getElementById('grayscale-checkbox');
+  sepia       = document.getElementById('sepia-checkbox');
+  grayscale   = document.getElementById('grayscale-checkbox');
+  brightness  = document.getElementById('brightness-slider');
+  contrast    = document.getElementById('contrast-slider');
 
   drawScene();
 }
@@ -421,22 +422,23 @@ function changeDropdownValue(text, id){
 }
 
 function loadBackgroundFile(input){
-  var file_name = input.files[0].name;
-  changeDropdownValue(file_name, 'file-name-1');
+  background_file = input.files[0].name;
+  changeDropdownValue(background_file, 'file-name-1');
   
-  var relative_path = './textures/' + file_name;
+  var relative_path = './textures/' + background_file;
   background_texture = initTextures(relative_path);
   
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, background_texture);
   gl.uniform1i(u2DTextureLocation1, 0);
-
+  
+  showBackgroundOnlyView();
 }
 
 function loadForegroundFile(input){
-  var file_name = input.files[0].name;
-  changeDropdownValue(file_name, 'file-name-2');
-  var relative_path = './textures/' + file_name;
+  foreground_file = input.files[0].name;
+  changeDropdownValue(foreground_file, 'file-name-2');
+  var relative_path = './textures/' + foreground_file;
   foreground_texture = initTextures(relative_path);
 
   gl.activeTexture(gl.TEXTURE1);
@@ -524,4 +526,36 @@ function None() {
   changeDropdownValue('Background Image', 'background-mode');
   gl.uniform1i(uBackgroundModeLocation, 0);
   setupTexture();
+}
+
+function ResetScreen(){
+  textureType = 0;
+  grayscale.checked = false;
+  sepia.checked = false;
+  brightness.value = 0;
+  contrast.value = 0;
+  gl.uniform1f(uBrightnessLocation, 0.0);
+  gl.uniform1f(uContrastLocation, 0.0);
+  showBackgroundOnlyView();
+  None();
+}
+
+function saveScreenshot(){
+  var pixels = new Uint8Array(canvas.width * canvas.height * 4);
+  gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+
+  var imageData = new ImageData(new Uint8ClampedArray(pixels), canvas.width, canvas.height);
+  var image = new Image();
+  image.src = URL.createObjectURL(new Blob([imageData]));
+  
+  image.onload = function() {
+    gl.drawImage(image, 0, 0);
+    console.log(image);
+  };
+
+  var dataURL = canvas.toDataURL("image/png");
+  var link = document.createElement("a");
+  link.href = dataURL;
+  link.download = background_file + "_edited.png";
+  link.click();
 }
