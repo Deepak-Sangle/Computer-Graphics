@@ -87,15 +87,10 @@ void main() {
   make_kernel(texture1);
   
   vec4 textureColor = texture(texture1, t); 
-  vec4 foregroundTextureColor = texture(texture2, t);
   
   if(uIsAlphaBlended == 1){
-    make_kernel(texture2);
-    foregroundTextureColor /= foregroundTextureColor.a;
-    float closer = sqrt(pow((foregroundTextureColor.r), 2.0) + pow((foregroundTextureColor.g), 2.0) + pow((foregroundTextureColor.b), 2.0));
-    if(closer > 0.1){
-      textureColor = mix(textureColor, foregroundTextureColor, 1.0);
-    }
+    vec4 foregroundTextureColor = texture(texture2, t);
+    textureColor = mix(textureColor, foregroundTextureColor, foregroundTextureColor.a);
   }
 
   if(uBackgroundMode == 1){
@@ -363,8 +358,8 @@ function handleTextureLoaded(texture) {
   gl.texImage2D(
     gl.TEXTURE_2D,      // 2D texture
     0,                  // mipmap level
-    gl.RGB,             // internal format
-    gl.RGB,             // format
+    gl.RGBA,             // internal format
+    gl.RGBA,             // format
     gl.UNSIGNED_BYTE,   // type of data
     texture.image       // array or <img>
   );
@@ -541,21 +536,9 @@ function ResetScreen(){
 }
 
 function saveScreenshot(){
-  var pixels = new Uint8Array(canvas.width * canvas.height * 4);
-  gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-
-  var imageData = new ImageData(new Uint8ClampedArray(pixels), canvas.width, canvas.height);
-  var image = new Image();
-  image.src = URL.createObjectURL(new Blob([imageData]));
-  
-  image.onload = function() {
-    gl.drawImage(image, 0, 0);
-    console.log(image);
-  };
-
   var dataURL = canvas.toDataURL("image/png");
   var link = document.createElement("a");
   link.href = dataURL;
-  link.download = background_file + "_edited.png";
+  link.download =  background_file + "_edited.png";
   link.click();
 }

@@ -23,7 +23,10 @@
           200860
         </div>
         <hr/>
-
+        <div style="font-size: 2rem;">
+          Photoshop
+        </div>
+        <hr/>
         <div style="margin-top: 50px;">
           <div class="btn">  
             <label for="file-1">Select Background Image
@@ -83,7 +86,7 @@
         <div class="btn">  
           <div>Contrast</div>
           <div class="slidecontainer">
-            <input type="range" min="-80" max="100" value="0" class="slider" id="contrast-slider" onmousemove="changeContrast(value)">
+            <input type="range" min="-80" max="100" value="0" class="slider" id="contrast-slider" onclick="changeContrast(value)" onmousemove="changeContrast(value)">
           </div>
           
         </div>
@@ -91,7 +94,7 @@
         <div class="btn">  
           <div>Brightness</div>
           <div class="slidecontainer">
-            <input type="range" min="-35" max="45" value="0" class="slider" id="brightness-slider" onmousemove="changeBrightness(value)">
+            <input type="range" min="-35" max="45" value="0" class="slider" id="brightness-slider" onclick="changeBrightness(value)" onmousemove="changeBrightness(value)">
           </div>
           
         </div>
