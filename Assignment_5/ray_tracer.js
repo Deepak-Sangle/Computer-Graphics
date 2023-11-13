@@ -10,9 +10,9 @@ var uShadingModeLocation;
 
 var buf;
 
-var lightPosition = [1.0, 6.0, 0.5];
-var bounceLimit = 0;
-var shadingMode = 0;
+var lightPosition = [1.0, 6.0, 2.0];
+var bounceLimit = 1;
+var shadingMode = 2;
 
 const vertexShaderCode = `#version 300 es
 in vec3 aPosition;
@@ -80,9 +80,9 @@ vec4 computePhongColor(vec3 hitPoint, Sphere sphere, Light light, Ray ray) {
   vec3 viewVector = normalize(ray.origin - hitPoint);
   
   float costheta = max(dot(lightVector, normal), 0.0);
-  float cosalpha = pow(max(dot(reflectVector, viewVector), 0.0), 32.0);
+  float cosalpha = pow(max(dot(reflectVector, viewVector), 0.0), 35.0);
 
-  vec4 phong_color = vec4(sphere.color*0.2 + light.specular*cosalpha*0.8 + sphere.color*costheta, 1.0);
+  vec4 phong_color = vec4(sphere.color*0.21 + light.specular*cosalpha + sphere.color*costheta*0.5, 1.0);
 
   return phong_color;
 }
@@ -145,26 +145,43 @@ void main() {
   vec3 hitPoint = ray.origin + ray.direction * t;
   vec4 phong_color = computePhongColor(hitPoint, spheres[hitting_sphere], light, ray);
   
-  if(uShadingMode == 0){
-    fragColor = phong_color;
+  int bounced_sphere = hitting_sphere;
+  vec3 bounced_point = hitPoint;
+  Ray reflection_ray = Ray(ray.origin, ray.direction);
+
+  for(int i=0;i<uBounceLimit && (uShadingMode == 2 || uShadingMode == 3);i++){
+    vec3 reflection_direction = normalize(reflect(-reflection_ray.direction, normalize(bounced_point - spheres[bounced_sphere].center)));
+    reflection_ray.origin = bounced_point + 0.01*reflection_direction;
+    reflection_ray.direction = reflection_direction;
+
+    int reflection_sphere = findNearestSphere(spheres, reflection_ray);
+
+    bounced_sphere = reflection_sphere;
+    bounced_point = reflection_ray.origin + reflection_ray.direction * intersectSphere(spheres[bounced_sphere], reflection_ray);
+
+    if(reflection_sphere == -1){
+      // do nothing
+    }
+    else if(i==uBounceLimit-1){
+      phong_color += 0.5*computePhongColor(bounced_point, spheres[reflection_sphere], light, reflection_ray);
+    }
+
   }
-  else if(uShadingMode == 1){
-    Ray shadow_ray;
-    shadow_ray.origin = hitPoint;
-    shadow_ray.direction = normalize(light.position - hitPoint);
 
-    if(hitting_sphere != 3){
-      fragColor = phong_color;
-      return ;
-    }
+  if(hitting_sphere != 3){
+    fragColor = phong_color;
+    return ;
+  }
 
-    if(isInShadow(spheres, shadow_ray)){
-      fragColor = vec4(light.shadow, 1.0) ;
-    }
-    else{
-      fragColor = phong_color;
-    }
+  Ray shadow_ray;
+  shadow_ray.origin = hitPoint;
+  shadow_ray.direction = normalize(light.position - hitPoint);
 
+  if((uShadingMode == 1 || uShadingMode == 3) && isInShadow(spheres, shadow_ray)){
+    fragColor = vec4(light.shadow, 1.0) ;
+  }
+  else{
+    fragColor = phong_color;
   }
 }`;
 
@@ -337,5 +354,6 @@ function moveLight(value){
 }
 
 function changeBounceLimit(value){
-  
+  bounceLimit = value;
+  drawScene();
 }
