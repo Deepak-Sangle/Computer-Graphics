@@ -56,13 +56,7 @@ float intersectSphere(Sphere sphere, Ray ray) {
   float delta = b * b - 4.0 * a * c;
   float t = 0.0;
 
-  if (delta < 0.0) {
-    return 0.0;
-  }
-  else if (delta == 0.0) {
-    t = -b / (2.0 * a);
-  }
-  else {
+  if(delta >= 0.0) {
     float t1 = (-b + sqrt(delta)) / (2.0 * a);
     float t2 = (-b - sqrt(delta)) / (2.0 * a);
     t = min(t1, t2);
@@ -96,7 +90,7 @@ int findNearestSphere(Sphere spheres[4], Ray ray){
     if(t == 0.0){
       continue;
     }
-    if(t < min_t){
+    if(t < min_t && t>0.0){
       min_t = t;
       hitting_sphere = i;
     }
@@ -150,21 +144,21 @@ void main() {
   Ray reflection_ray = Ray(ray.origin, ray.direction);
 
   for(int i=0;i<uBounceLimit && (uShadingMode == 2 || uShadingMode == 3);i++){
-    vec3 reflection_direction = normalize(reflect(-reflection_ray.direction, normalize(bounced_point - spheres[bounced_sphere].center)));
+    vec3 reflection_direction = normalize(reflect(reflection_ray.direction, normalize(bounced_point - spheres[bounced_sphere].center)));
     reflection_ray.origin = bounced_point + 0.01*reflection_direction;
     reflection_ray.direction = reflection_direction;
 
     int reflection_sphere = findNearestSphere(spheres, reflection_ray);
+    float hitT = intersectSphere(spheres[reflection_sphere], reflection_ray);
+    
+    if(hitT<=0.0){
+      break;
+    }
 
     bounced_sphere = reflection_sphere;
-    bounced_point = reflection_ray.origin + reflection_ray.direction * intersectSphere(spheres[bounced_sphere], reflection_ray);
-
-    if(reflection_sphere == -1){
-      // do nothing
-    }
-    else if(i==uBounceLimit-1){
-      phong_color += 0.5*computePhongColor(bounced_point, spheres[reflection_sphere], light, reflection_ray);
-    }
+    bounced_point = reflection_ray.origin + reflection_ray.direction * hitT;
+    
+    phong_color += 0.5*computePhongColor(bounced_point, spheres[reflection_sphere], light, reflection_ray);
 
   }
 
