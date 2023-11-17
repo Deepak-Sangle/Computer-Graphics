@@ -375,20 +375,21 @@ function handleTextureLoaded(texture) {
 }
 
 function initTextures(file_path){
-  var texture = gl.createTexture();
-  texture.image = new Image();
-  texture.image.crossOrigin = "anonymous";
-  texture.image.src = file_path;
-  texture.image.onload = function () {
-    handleTextureLoaded(texture);
-  };
-  return texture;
+  return new Promise((resolve, _) => {
+    var texture = gl.createTexture();
+    texture.image = new Image();
+    texture.image.crossOrigin = "anonymous";
+    texture.image.src = file_path;
+    texture.image.onload = function () {
+      handleTextureLoaded(texture);
+      resolve(texture);
+    }
+  });
 }
 
 // This is the entry point from the html
 function webGLStart() {
   
-  console.log("token: ", process.env.PERSONAL_ACCESS_TOKEN);
   canvas = document.getElementById("canvas");
   
   initGL(canvas);
@@ -447,7 +448,7 @@ async function uploadImage(fileInput, is_background){
 
   try {
     const dataURL = await readAsDataURLAsync(file);
-    const accessToken = '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';
+    const accessToken = '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';
     const repoOwner = 'Deepak-Sangle';
     const repoName = 'Computer-Graphics';
     const branchName = 'main';
@@ -463,7 +464,7 @@ async function uploadImage(fileInput, is_background){
     const response = await fetch(apiUrl, {
         method: 'PUT',
         headers: {
-            Authorization: `token ${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
@@ -487,8 +488,7 @@ async function loadBackgroundFile(input){
   changeDropdownValue(background_file, 'file-name-1');
   
   await uploadImage(input, true);
-  console.log({background_file_path});
-  background_texture = initTextures(background_file_path);
+  background_texture = await initTextures(background_file_path);
   
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, background_texture);
@@ -502,9 +502,8 @@ async function loadForegroundFile(input){
   changeDropdownValue(foreground_file, 'file-name-2');
   
   await uploadImage(input, false);
-  console.log({foreground_file_path});
-  foreground_texture = initTextures(foreground_file_path);
-
+  foreground_texture = await initTextures(foreground_file_path);
+  
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, foreground_texture);
   gl.uniform1i(u2DTextureLocation2, 1);
