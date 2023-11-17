@@ -448,7 +448,7 @@ async function uploadImage(fileInput, is_background){
 
   try {
     const dataURL = await readAsDataURLAsync(file);
-    const accessToken = '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';
+    const accessToken = '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';
     const repoOwner = 'Deepak-Sangle';
     const repoName = 'Computer-Graphics';
     const branchName = 'main';
