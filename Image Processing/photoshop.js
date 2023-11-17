@@ -29,6 +29,8 @@ var sepia, grayscale, brightness, contrast;
 var background_file, background_texture;
 var foreground_file, foreground_texture;
 
+var background_file_path, foreground_file_path;
+
 const vertexShaderCode = `#version 300 es
 in vec3 aPosition;
 in vec2 aTexture;
@@ -375,6 +377,7 @@ function handleTextureLoaded(texture) {
 function initTextures(file_path){
   var texture = gl.createTexture();
   texture.image = new Image();
+  texture.image.crossOrigin = "anonymous";
   texture.image.src = file_path;
   texture.image.onload = function () {
     handleTextureLoaded(texture);
@@ -384,6 +387,8 @@ function initTextures(file_path){
 
 // This is the entry point from the html
 function webGLStart() {
+  
+  console.log("token: ", process.env.PERSONAL_ACCESS_TOKEN);
   canvas = document.getElementById("canvas");
   
   initGL(canvas);
@@ -416,12 +421,74 @@ function changeDropdownValue(text, id){
   document.getElementById(id).innerHTML = text;
 }
 
-function loadBackgroundFile(input){
+function readAsDataURLAsync(file) {
+  return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+          resolve(event.target.result);
+      };
+
+      reader.onerror = function (event) {
+          reject(event.target.error);
+      };
+
+      reader.readAsDataURL(file);
+  });
+}
+
+async function uploadImage(fileInput, is_background){
+  const file = fileInput.files[0];
+
+  if (!file) {
+      alert('Please select a file');
+      return;
+  }
+
+  try {
+    const dataURL = await readAsDataURLAsync(file);
+    const accessToken = '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';
+    const repoOwner = 'Deepak-Sangle';
+    const repoName = 'Computer-Graphics';
+    const branchName = 'main';
+    const randomFileName = Math.random().toString(36).substring(2, 15); 
+    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${randomFileName + file.name}`;
+
+    const requestBody = {
+        message: 'Upload image',
+        content: dataURL.split(',')[1], // Extracting base64 data
+        branch: branchName
+    };
+
+    const response = await fetch(apiUrl, {
+        method: 'PUT',
+        headers: {
+            Authorization: `token ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+    });
+
+    const responseData = await response.json();
+    
+    if(is_background === true)
+      background_file_path = responseData.content.download_url;
+    else
+      foreground_file_path = responseData.content.download_url;
+
+  } catch (error) {
+      console.error('Error uploading image:', error);
+  }
+
+}
+
+async function loadBackgroundFile(input){
   background_file = input.files[0].name;
   changeDropdownValue(background_file, 'file-name-1');
   
-  var relative_path = './textures/' + background_file;
-  background_texture = initTextures(relative_path);
+  await uploadImage(input, true);
+  console.log({background_file_path});
+  background_texture = initTextures(background_file_path);
   
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, background_texture);
@@ -430,11 +497,13 @@ function loadBackgroundFile(input){
   showBackgroundOnlyView();
 }
 
-function loadForegroundFile(input){
+async function loadForegroundFile(input){
   foreground_file = input.files[0].name;
   changeDropdownValue(foreground_file, 'file-name-2');
-  var relative_path = './textures/' + foreground_file;
-  foreground_texture = initTextures(relative_path);
+  
+  await uploadImage(input, false);
+  console.log({foreground_file_path});
+  foreground_texture = initTextures(foreground_file_path);
 
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, foreground_texture);

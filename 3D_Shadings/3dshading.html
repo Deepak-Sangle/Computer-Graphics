@@ -6,6 +6,8 @@
     <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" />
     <script type="text/javascript" src="glMatrix-0.9.5.min.js"></script>
     <script type="text/javascript" src="3dshading.js"></script>
+    <link rel="stylesheet" href="3dshading.css">
+
     <style>
       .heading{
         font-size: 20px;
@@ -39,14 +41,18 @@
         <span style="font-weight: bold;">
           Control Light Position: 
         </span>
-        <input type="range" min="-10" max="10" value="5" onmousemove="changeLightPosition(value)" class="slider" id="myRange">
+        <div class="slidecontainer">
+          <input type="range" min="-10" max="10" value="5" onmousemove="changeLightPosition(value)" class="slider" id="myRange">
+        </div>
       </div>
       <br>
       <div style="display: flex;">
         <span style="font-weight: bold;">
           Control Camera Zoom: 
         </span>
-        <input type="range" min="-10" max="100" value="0" onmousemove="changeCameraPosition(value)" class="slider" id="myRange">
+        <div class="slidecontainer">
+          <input type="range" min="-10" max="100" value="0" onmousemove="changeCameraPosition(value)" class="slider" id="myRange">
+        </div>
       </div>
 
     </div>
