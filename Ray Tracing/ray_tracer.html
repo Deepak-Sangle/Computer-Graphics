@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <title>Assignment 5</title>
+    <meta http-equiv="content-type" content="text/html; charset=ISO-8859-1" />
+    <script type="text/javascript" src="ray_tracer.js"></script>
+    <link rel="stylesheet" href="ray_tracer.css">
+  </head>
+
+  <body onload="webGLStart();">
+    
+    <div id="main-box">
+      <div id="left-box">
+        <div style="font-size: 2rem;">
+          Assignment 5
+        </div>
+        <div style="font-size: 2rem; color: blue;">
+          Deepak Sangle
+        </div>
+        <div style="font-size: 1.5rem; color:black;">
+          200860
+        </div>
+        <hr/>
+      </div>
+      
+      <canvas
+        id="canvas"
+        style="border: 2px solid black;"
+        width="600"
+        height="600"
+      ></canvas>
+
+      <div id="right-box">
+
+        <div class="dropdown">
+          <button class="dropbtn" id="image-mode">Shading Mode</button>
+          <div class="dropdown-content">
+            <a onclick="showPhong()">Phong</a>
+            <a onclick="showPhongShadow()">Phong and Shadow</a>
+            <a onclick="showPhongReflection()">Phong and Reflection</a>
+            <a onclick="showPhongShadowReflection()">Phong, Shadow and Reflection</a>
+          </div>
+        </div>
+        
+        <div class="btn">  
+          <div>Move Light</div>
+          <div class="slidecontainer">
+            <input type="range" min="-40" max="40" value="-10" class="slider" id="contrast-slider" onclick="moveLight(value)" onmousemove="moveLight(value)">
+          </div>
+          
+        </div>
+
+        <div class="btn">  
+          <div>Bounce Limit</div>
+          <div class="slidecontainer">
+            <input type="range" min="1" max="5" value="0" class="slider" id="brightness-slider" onclick="changeBounceLimit(value)" onmousemove="changeBounceLimit(value)">
+          </div>
+        </div>
+
+      </div> 
+    </div>
+
+  </body>
+</html>
