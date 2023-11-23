@@ -456,12 +456,11 @@ async function uploadImage(fileInput, is_background){
     const data = await res.json();
     const dataURL = await readAsDataURLAsync(file);
     const accessToken = data.data;
-    console.log(data, accessToken);
     const repoOwner = 'Deepak-Sangle';
     const repoName = 'Computer-Graphics';
     const branchName = 'main';
     const randomFileName = Math.random().toString(36).substring(2, 15); 
-    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/${randomFileName + file.name}`;
+    const apiUrl = `https://api.github.com/repos/${repoOwner}/${repoName}/contents/Image\ Processing/uploads/${randomFileName + file.name}`;
 
     const requestBody = {
         message: 'Upload image',
