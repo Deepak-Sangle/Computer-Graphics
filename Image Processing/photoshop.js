@@ -447,8 +447,16 @@ async function uploadImage(fileInput, is_background){
   }
 
   try {
+
+    const res = await fetch('https://dear-diary-api.onrender.com/external/pat-cs360');
+    if(!res.ok) {
+      alert("Error uploading image");
+      return;
+    }
+    const data = await res.json();
     const dataURL = await readAsDataURLAsync(file);
-    const accessToken = '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';
+    const accessToken = data.data;
+    console.log(data, accessToken);
     const repoOwner = 'Deepak-Sangle';
     const repoName = 'Computer-Graphics';
     const branchName = 'main';
